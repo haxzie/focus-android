@@ -7,13 +7,20 @@ package org.mozilla.focus.screenshots;
 import android.content.Context;
 import android.preference.PreferenceManager;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.espresso.DataInteraction;
 import android.support.test.espresso.Espresso;
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.support.test.uiautomator.UiObject;
 import android.support.test.uiautomator.UiScrollable;
 import android.support.test.uiautomator.UiSelector;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -45,7 +52,10 @@ import static android.support.test.espresso.matcher.ViewMatchers.withClassName;
 import static android.support.test.espresso.matcher.ViewMatchers.withId;
 import static android.support.test.espresso.matcher.ViewMatchers.withText;
 import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mozilla.focus.fragment.FirstrunFragment.FIRSTRUN_PREF;
 import static org.mozilla.focus.helpers.EspressoHelper.assertToolbarMatchesText;
 import static org.mozilla.focus.helpers.EspressoHelper.openSettings;
@@ -148,13 +158,23 @@ public class SettingsScreenshots extends ScreenshotTest {
         final String urlAutocompletemenu = getString(R.string.preference_subitem_autocomplete);
         onData(withTitleText(urlAutocompletemenu))
                 .perform(click());
-        onView(withText(getString(R.string.preference_autocomplete_custom_summary)))
-                .check(matches(isDisplayed()));
+
+
+        //onView(withText(getString(R.string.preference_autocomplete_custom_summary)))
+        //        .check(matches(isDisplayed()));
         Screengrab.screenshot("Autocomplete_Menu_Item");
 
         /* Enable Autocomplete, and enter Custom URLs */
-        onView(withText(getString(R.string.preference_autocomplete_custom_summary)))
-                .perform(click());
+        //onView(withText(getString(R.string.preference_autocomplete_custom_summary)))
+        //        .perform(click());
+        DataInteraction linearLayout2 = onData(anything())
+                .inAdapterView(allOf(withId(android.R.id.list),
+                        childAtPosition(
+                                withClassName(is("android.widget.LinearLayout")),
+                                0)))
+                .atPosition(3);
+        linearLayout2.perform(click());
+
         /* Add custom URL */
         final String key = InstrumentationRegistry
                 .getTargetContext()
@@ -235,5 +255,24 @@ public class SettingsScreenshots extends ScreenshotTest {
                 .check(matches(withText("focus:rights")));
 
         Screengrab.screenshot("YourRights_Page");
+    }
+
+    private static Matcher<View> childAtPosition(
+            final Matcher<View> parentMatcher, final int position) {
+
+        return new TypeSafeMatcher<View>() {
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Child at position " + position + " in parent ");
+                parentMatcher.describeTo(description);
+            }
+
+            @Override
+            public boolean matchesSafely(View view) {
+                ViewParent parent = view.getParent();
+                return parent instanceof ViewGroup && parentMatcher.matches(parent)
+                        && view.equals(((ViewGroup) parent).getChildAt(position));
+            }
+        };
     }
 }
